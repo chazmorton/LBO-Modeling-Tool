@@ -76,47 +76,21 @@ yfinance==0.2.54
 
 ## How to Run
 
-### 1. Start the Backend
-
 ```bash
-# Navigate to the backend directory
-cd backend
-
-# (Recommended) Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate      # macOS/Linux
-# venv\Scripts\activate       # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start the API server
-python main.py
+./start.sh
 ```
 
-The API will be available at `http://localhost:8000`.
+That's it. The script will:
 
-### 2. Open the Frontend
+1. Create a Python virtual environment (first run only)
+2. Install dependencies (first run only)
+3. Start the backend API on `http://localhost:8000`
+4. Start the frontend server on `http://localhost:8080`
+5. Open the app in your browser automatically
 
-The frontend is plain HTML/CSS/JavaScript — no build step required.
+Press **Ctrl+C** to stop both servers.
 
-**Option A — Open directly in browser:**
-
-```bash
-open frontend/index.html    # macOS
-# or just double-click frontend/index.html in Finder
-```
-
-**Option B — Serve locally (recommended to avoid CORS issues):**
-
-```bash
-cd frontend
-python -m http.server 8080
-```
-
-Then open `http://localhost:8080` in your browser.
-
-> The frontend expects the backend API at `http://localhost:8000`. Make sure the backend is running before using the app.
+> **Note:** Requires Python 3.8+ and port 8000 and 8080 to be available.
 
 ---
 
