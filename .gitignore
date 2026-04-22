@@ -1,0 +1,12 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Mac junk
+.DS_Store
+
+# Editor
+.vscode/

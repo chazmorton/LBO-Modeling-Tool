@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LBO Tool — Monte Carlo</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <div class="page">
+    <div class="page-header">
+      <svg class="utah-u" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 60" width="38" height="44">
+        <rect x="0" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+        <rect x="37" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+        <path d="M0,30 Q0,60 26,60 Q52,60 52,30 L37,30 Q37,45 26,45 Q15,45 15,30 Z" fill="#CC0000"/>
+      </svg>
+      <div class="page-header-text">
+        <h1>Monte Carlo Simulation</h1>
+        <p>Stress-test the deal across 1,000+ random scenarios to see the range of possible outcomes.</p>
+      </div>
+    </div>
+
+    <div id="no-ticker" class="no-ticker" style="display:none;">
+      <h2>No model run yet</h2>
+      <p>Go to <a href="lbo.html" style="color:#ef4444;">Step 2</a> and run the LBO model first.</p>
+    </div>
+
+    <div id="mc-content" style="display:none;">
+      <div id="company-tag" class="company-tag"></div>
+
+      <!-- Controls -->
+      <div class="card">
+        <h2>Simulation Settings</h2>
+        <p class="inputs-note">
+          Each simulation randomly varies the three key assumptions below around your base case.
+          Leave volatility fields blank to use auto values (40% of growth rate, 20% of margin/multiple).
+        </p>
+
+        <div class="mc-controls">
+          <div class="input-group">
+            <label>Simulations</label>
+            <input type="number" id="mc-n" value="1000" step="100" min="100" max="5000" />
+          </div>
+          <div class="input-group">
+            <label>Growth Rate Volatility (%)</label>
+            <input type="number" id="mc-growth-std" placeholder="auto" step="0.1" min="0" />
+          </div>
+          <div class="input-group">
+            <label>EBITDA Margin Volatility (%)</label>
+            <input type="number" id="mc-margin-std" placeholder="auto" step="0.1" min="0" />
+          </div>
+          <div class="input-group">
+            <label>Exit Multiple Volatility (x)</label>
+            <input type="number" id="mc-multiple-std" placeholder="auto" step="0.1" min="0" />
+          </div>
+        </div>
+
+        <!-- Base case reminder -->
+        <div id="base-case-row" style="display:flex;gap:24px;margin-bottom:20px;flex-wrap:wrap;"></div>
+
+        <button class="btn-primary" id="mc-btn" onclick="runMonteCarlo()">Run Simulation</button>
+      </div>
+
+      <!-- Results -->
+      <div id="mc-results" style="display:none;">
+
+        <div class="mc-stats-grid">
+          <div class="mc-stat highlight">
+            <div class="mc-stat-label">Median IRR</div>
+            <div class="mc-stat-value" id="mc-median">—</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-stat-label">Mean IRR</div>
+            <div class="mc-stat-value" id="mc-mean">—</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-stat-label">P10 — Bear Case</div>
+            <div class="mc-stat-value" id="mc-p10">—</div>
+          </div>
+          <div class="mc-stat">
+            <div class="mc-stat-label">P90 — Bull Case</div>
+            <div class="mc-stat-value" id="mc-p90">—</div>
+          </div>
+        </div>
+
+        <div class="mc-charts">
+          <div class="card mc-chart-wrap">
+            <h3>IRR Distribution — <span id="mc-sim-count" style="color:#ef4444;"></span> scenarios</h3>
+            <canvas id="mcHistChart"></canvas>
+          </div>
+          <div class="card">
+            <h3>Full Percentile Breakdown</h3>
+            <table class="mc-percentile-table">
+              <tbody id="mc-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding:12px 16px;background:#0f0a00;border:1px solid #78350f;border-left:3px solid #f59e0b;border-radius:8px;font-size:0.78rem;color:#fbbf24;line-height:1.5;">
+          <strong>Reminder:</strong> These are model projections based on randomised assumptions, not predictions. Real outcomes depend on management execution, market conditions, and many factors this model cannot capture.
+        </div>
+      </div>
+    </div>
+
+    <div id="error-msg" class="error" style="display:none;"></div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    buildNav(3);
+
+    const state = getState();
+    let mcHistChart;
+
+    if (!state.lbo_inputs) {
+      document.getElementById("no-ticker").style.display = "block";
+    } else {
+      document.getElementById("mc-content").style.display = "block";
+      const c = state.company;
+      const inputs = state.lbo_inputs;
+
+      document.getElementById("company-tag").innerHTML =
+        `<span class="company-tag-ticker">${c.ticker}</span>
+         <span class="company-tag-name">${c.name} · ${c.sector}</span>`;
+
+      // Show base case values as reference
+      const baseItems = [
+        ["Revenue", "$" + inputs.revenue + "M"],
+        ["Growth Rate", (inputs.growth_rate * 100).toFixed(1) + "%"],
+        ["EBITDA Margin", (inputs.ebitda_margin * 100).toFixed(1) + "%"],
+        ["Exit Multiple", inputs.exit_multiple + "x"],
+        ["Hold Period", inputs.years + " yrs"],
+      ];
+      document.getElementById("base-case-row").innerHTML = baseItems.map(([label, val]) =>
+        `<div style="font-size:0.78rem;">
+          <div style="color:#475569;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;">${label}</div>
+          <div style="color:#94a3b8;font-weight:600;">${val}</div>
+        </div>`
+      ).join("");
+    }
+
+    async function runMonteCarlo() {
+      const btn = document.getElementById("mc-btn");
+      btn.textContent = "Simulating..."; btn.disabled = true;
+      document.getElementById("error-msg").style.display = "none";
+
+      const inputs = state.lbo_inputs;
+      const n = parseInt(document.getElementById("mc-n").value) || 1000;
+      const growthStd   = document.getElementById("mc-growth-std").value;
+      const marginStd   = document.getElementById("mc-margin-std").value;
+      const multipleStd = document.getElementById("mc-multiple-std").value;
+
+      const payload = { ...inputs, simulations: n };
+      if (growthStd)   payload.growth_std   = parseFloat(growthStd) / 100;
+      if (marginStd)   payload.margin_std   = parseFloat(marginStd) / 100;
+      if (multipleStd) payload.multiple_std = parseFloat(multipleStd);
+
+      try {
+        const res = await fetch(`${API_URL}/monte-carlo`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+        const data = await res.json();
+        renderMC(data);
+      } catch (e) {
+        showError("error-msg", "Simulation error: " + e.message);
+      } finally {
+        btn.textContent = "Run Simulation"; btn.disabled = false;
+      }
+    }
+
+    function renderMC(data) {
+      const irr = data.irr;
+
+      document.getElementById("mc-median").textContent = irr.median + "%";
+      document.getElementById("mc-mean").textContent   = irr.mean + "%";
+      document.getElementById("mc-p10").textContent    = irr.p10 + "%";
+      document.getElementById("mc-p90").textContent    = irr.p90 + "%";
+      document.getElementById("mc-sim-count").textContent = data.simulations.toLocaleString();
+
+      document.getElementById("mc-table-body").innerHTML = [
+        ["Simulations run",  data.simulations.toLocaleString()],
+        ["Min (worst)",      irr.min + "%"],
+        ["P10 — Bear case",  irr.p10 + "%"],
+        ["P25",              irr.p25 + "%"],
+        ["Median (P50)",     irr.median + "%"],
+        ["Mean",             irr.mean + "%"],
+        ["P75",              irr.p75 + "%"],
+        ["P90 — Bull case",  irr.p90 + "%"],
+        ["Max (best)",       irr.max + "%"],
+        ["Median MOIC",      data.moic?.median ? data.moic.median + "x" : "N/A"],
+        ["P10 MOIC",         data.moic?.p10    ? data.moic.p10 + "x"    : "N/A"],
+        ["P90 MOIC",         data.moic?.p90    ? data.moic.p90 + "x"    : "N/A"],
+      ].map(([l, v]) => `<tr><td>${l}</td><td>${v}</td></tr>`).join("");
+
+      if (mcHistChart) mcHistChart.destroy();
+
+      const hist = data.histogram;
+      const midpoints = hist.edges.slice(0, -1).map((e, i) =>
+        ((e + hist.edges[i + 1]) / 2).toFixed(1) + "%"
+      );
+
+      mcHistChart = new Chart(document.getElementById("mcHistChart"), {
+        type: "bar",
+        data: {
+          labels: midpoints,
+          datasets: [{
+            label: "Scenarios",
+            data: hist.counts,
+            backgroundColor: hist.edges.slice(0, -1).map(e => e < 0 ? "#ef444466" : "#ef444499"),
+            borderColor:     hist.edges.slice(0, -1).map(e => e < 0 ? "#ef4444"   : "#fca5a5"),
+            borderWidth: 1,
+            barPercentage: 1.0,
+            categoryPercentage: 1.0,
+          }],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: items => "IRR ≈ " + items[0].label,
+                label: item  => item.raw + " scenarios",
+              },
+            },
+          },
+          scales: {
+            x: { ticks: { color: "#64748b", maxTicksLimit: 8 }, grid: { display: false } },
+            y: { ticks: { color: "#64748b" }, grid: { color: "#2a2a2a" },
+                 title: { display: true, text: "# Scenarios", color: "#64748b" } },
+          },
+        },
+      });
+
+      document.getElementById("mc-results").style.display = "block";
+    }
+  </script>
+</body>
+</html>

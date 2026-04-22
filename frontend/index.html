@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LBO Tool — Validate Company</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <div class="page">
+    <div class="page-header">
+      <svg class="utah-u" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 60" width="38" height="44">
+        <rect x="0" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+        <rect x="37" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+        <path d="M0,30 Q0,60 26,60 Q52,60 52,30 L37,30 Q37,45 26,45 Q15,45 15,30 Z" fill="#CC0000"/>
+      </svg>
+      <div class="page-header-text">
+        <h1>Is this company a realistic LBO target?</h1>
+        <p>Search any public company. We'll check if the fundamentals actually support a leveraged buyout.</p>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      <strong>Not financial advice.</strong> This tool is for educational purposes only.
+      All outputs are model estimates based on public data. Never make investment decisions
+      based solely on this tool. Always consult a qualified financial advisor.
+    </div>
+
+    <!-- Search -->
+    <div class="card">
+      <div class="search-label">Search Company</div>
+      <div class="search-row">
+        <div class="search-wrap">
+          <input type="text" id="search-input" placeholder="Type company name or ticker (e.g. Coca-Cola, MCD, DELL)..." autocomplete="off" />
+          <div id="search-dropdown" class="search-dropdown" style="display:none;"></div>
+        </div>
+        <button class="btn-primary" id="validate-btn" onclick="validateCompany()">Check Company</button>
+      </div>
+    </div>
+
+    <!-- Result -->
+    <div id="result-area"></div>
+    <div id="error-msg" class="error" style="display:none;"></div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    buildNav(1);
+    initSearch("search-input", "search-dropdown", (ticker) => {
+      document.getElementById("search-input").value = ticker;
+    });
+
+    async function validateCompany() {
+      const raw = document.getElementById("search-input").value.trim();
+      const ticker = raw.toUpperCase();
+      if (!ticker) { showError("error-msg", "Enter a ticker or company name first."); return; }
+
+      const btn = document.getElementById("validate-btn");
+      btn.textContent = "Checking...";
+      btn.disabled = true;
+      document.getElementById("result-area").innerHTML = "";
+
+      try {
+        const res = await fetch(`${API_URL}/validate/${encodeURIComponent(ticker)}`);
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Failed to validate");
+        }
+        const data = await res.json();
+
+        // Save to state
+        setState({ ticker: data.ticker, validated: data.valid, company: data.company });
+        buildNav(1);
+
+        renderResult(data);
+      } catch (e) {
+        showError("error-msg", "Error: " + e.message);
+      } finally {
+        btn.textContent = "Check Company";
+        btn.disabled = false;
+      }
+    }
+
+    function renderResult(d) {
+      const icon = d.color === "green" ? "✅" : d.color === "yellow" ? "⚠️" : "❌";
+      const checksHtml = d.checks.map(c => `
+        <div class="check-item">
+          <span class="check-icon">${c.pass ? "✅" : "❌"}</span>
+          <div>
+            <div class="check-label">${c.label}</div>
+            <div class="check-detail">${c.detail}</div>
+          </div>
+        </div>
+      `).join("");
+
+      const actionHtml = d.valid
+        ? `<a href="lbo.html" class="btn-primary">Continue to LBO Model →</a>
+           <span class="warning-note">You can still adjust all assumptions manually</span>`
+        : `<button class="btn-outline" onclick="document.getElementById('search-input').value='';document.getElementById('result-area').innerHTML=''">Try a Different Company</button>
+           <span class="warning-note">Or continue anyway — results will be unreliable</span>
+           <a href="lbo.html" style="font-size:0.78rem;color:#475569;text-decoration:underline;cursor:pointer;">Continue anyway</a>`;
+
+      document.getElementById("result-area").innerHTML = `
+        <div class="verdict-card ${d.color}">
+          <div class="verdict-header">
+            <span class="verdict-icon">${icon}</span>
+            <div>
+              <div class="verdict-title">${d.verdict}</div>
+              <div class="verdict-company">${d.name} · ${d.ticker} · ${[d.sector, d.industry].filter(Boolean).join(", ")}</div>
+            </div>
+          </div>
+          <p class="verdict-summary">${d.summary}</p>
+
+          <div class="score-bar-wrap">
+            <div class="score-bar-label"><span>LBO Suitability Score</span><span>${d.score}/100</span></div>
+            <div class="score-bar-track">
+              <div class="score-bar-fill" style="width: ${d.score}%"></div>
+            </div>
+          </div>
+
+          <div class="checks-list">${checksHtml}</div>
+
+          <div class="verdict-actions">${actionHtml}</div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

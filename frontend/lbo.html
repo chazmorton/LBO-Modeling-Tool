@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LBO Tool — LBO Model</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <div class="page">
+    <div class="page-header">
+      <svg class="utah-u" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 60" width="38" height="44">
+        <rect x="0" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+        <rect x="37" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+        <path d="M0,30 Q0,60 26,60 Q52,60 52,30 L37,30 Q37,45 26,45 Q15,45 15,30 Z" fill="#CC0000"/>
+      </svg>
+      <div class="page-header-text">
+        <h1>LBO Model</h1>
+        <p>Review and adjust assumptions, then run the model to see projected returns.</p>
+      </div>
+    </div>
+
+    <div id="no-ticker" class="no-ticker" style="display:none;">
+      <h2>No company selected</h2>
+      <p>Go back to <a href="index.html" style="color:#ef4444;">Step 1</a> and validate a company first.</p>
+    </div>
+
+    <div id="lbo-content" style="display:none;">
+      <div id="company-tag" class="company-tag"></div>
+
+      <div class="main-grid">
+        <!-- Inputs -->
+        <section class="card">
+          <h2>Model Assumptions</h2>
+          <p class="inputs-note">Auto-filled from real data. Adjust as needed.</p>
+
+          <div class="input-group"><label>Initial Revenue ($M)</label>
+            <input type="number" id="revenue" step="1" min="1" /></div>
+          <div class="input-group"><label>Revenue Growth Rate (%)</label>
+            <input type="number" id="growth_rate" step="0.1" min="0" max="100" /></div>
+          <div class="input-group"><label>EBITDA Margin (%)</label>
+            <input type="number" id="ebitda_margin" step="0.1" min="0" max="100" /></div>
+          <div class="input-group"><label>Debt Financing (%)</label>
+            <input type="number" id="debt_percent" step="1" min="0" max="100" /></div>
+          <div class="input-group"><label>Interest Rate (%)</label>
+            <input type="number" id="interest_rate" step="0.1" min="0" max="100" /></div>
+          <div class="input-group"><label>Exit Multiple (x)</label>
+            <input type="number" id="exit_multiple" step="0.5" min="1" /></div>
+          <div class="input-group"><label>Holding Period (Years)</label>
+            <input type="number" id="years" step="1" min="1" max="20" /></div>
+
+          <button class="btn-primary" id="run-btn" onclick="runLBO()" style="width:100%;margin-top:8px;">Run Model</button>
+        </section>
+
+        <!-- Results -->
+        <section class="card" id="results" style="display:none;">
+          <h2>Key Returns</h2>
+          <div class="kpi-grid">
+            <div class="kpi"><span class="kpi-label">IRR</span><span class="kpi-value" id="irr-val">—</span></div>
+            <div class="kpi"><span class="kpi-label">Exit Enterprise Value</span><span class="kpi-value" id="exit-val">—</span></div>
+            <div class="kpi"><span class="kpi-label">Exit Equity Value</span><span class="kpi-value" id="equity-val">—</span></div>
+            <div class="kpi"><span class="kpi-label">MOIC</span><span class="kpi-value" id="moic-val">—</span></div>
+            <div class="kpi"><span class="kpi-label">Purchase Price</span><span class="kpi-value" id="purchase-val">—</span></div>
+            <div class="kpi"><span class="kpi-label">Initial Equity</span><span class="kpi-value" id="equity-in-val">—</span></div>
+          </div>
+
+          <div class="tables-grid">
+            <h3>Annual Financials ($M)</h3>
+            <table id="financials-table">
+              <thead><tr><th>Year</th><th>Revenue</th><th>EBITDA</th><th>Interest</th><th>Debt Balance</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid" id="charts-section" style="display:none;">
+        <div class="card"><h3>Revenue & EBITDA ($M)</h3><canvas id="revenueChart"></canvas></div>
+        <div class="card"><h3>Debt Balance ($M)</h3><canvas id="debtChart"></canvas></div>
+        <div class="card"><h3>Cash Flows ($M)</h3><canvas id="cashflowChart"></canvas></div>
+      </div>
+
+      <!-- Next step -->
+      <div id="next-step" style="display:none; text-align:right; margin-top:4px;">
+        <a href="monte-carlo.html" class="btn-primary">Run Monte Carlo Simulation →</a>
+      </div>
+    </div>
+
+    <div id="error-msg" class="error" style="display:none;"></div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    buildNav(2);
+
+    const state = getState();
+    let revenueChart, debtChart, cashflowChart;
+
+    if (!state.company) {
+      document.getElementById("no-ticker").style.display = "block";
+    } else {
+      document.getElementById("lbo-content").style.display = "block";
+      const c = state.company;
+
+      document.getElementById("company-tag").innerHTML =
+        `<span class="company-tag-ticker">${c.ticker}</span>
+         <span class="company-tag-name">${c.name} · ${c.sector}</span>`;
+
+      document.getElementById("revenue").value      = c.revenue;
+      document.getElementById("growth_rate").value  = c.growth_rate;
+      document.getElementById("ebitda_margin").value = c.ebitda_margin;
+      document.getElementById("debt_percent").value  = c.debt_percent;
+      document.getElementById("interest_rate").value = c.interest_rate;
+      document.getElementById("exit_multiple").value = c.exit_multiple;
+      document.getElementById("years").value         = c.years;
+    }
+
+    function fmt(v) {
+      if (v == null) return "N/A";
+      return "$" + v.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "M";
+    }
+
+    function getInputs() {
+      return {
+        revenue:       parseFloat(document.getElementById("revenue").value),
+        growth_rate:   parseFloat(document.getElementById("growth_rate").value) / 100,
+        ebitda_margin: parseFloat(document.getElementById("ebitda_margin").value) / 100,
+        debt_percent:  parseFloat(document.getElementById("debt_percent").value) / 100,
+        interest_rate: parseFloat(document.getElementById("interest_rate").value) / 100,
+        exit_multiple: parseFloat(document.getElementById("exit_multiple").value),
+        years:         parseInt(document.getElementById("years").value),
+      };
+    }
+
+    const CHART_OPT = {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#94a3b8", font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: "#64748b" }, grid: { color: "#1a1a1a" } },
+        y: { ticks: { color: "#64748b" }, grid: { color: "#2a2a2a" } },
+      },
+    };
+
+    async function runLBO() {
+      const btn = document.getElementById("run-btn");
+      btn.textContent = "Running..."; btn.disabled = true;
+      document.getElementById("error-msg").style.display = "none";
+
+      try {
+        const inputs = getInputs();
+        const res = await fetch(`${API_URL}/lbo`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(inputs),
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+        const r = await res.json();
+
+        // Save inputs for Monte Carlo
+        setState({ lbo_inputs: inputs, lbo_result: r });
+
+        renderResults(r);
+      } catch (e) {
+        showError("error-msg", "Error: " + e.message + " — is the backend running?");
+      } finally {
+        btn.textContent = "Run Model"; btn.disabled = false;
+      }
+    }
+
+    function renderResults(r) {
+      document.getElementById("irr-val").textContent       = r.irr != null ? r.irr + "%" : "N/A";
+      document.getElementById("exit-val").textContent      = fmt(r.exit_value);
+      document.getElementById("equity-val").textContent    = fmt(r.equity_value);
+      document.getElementById("purchase-val").textContent  = fmt(r.purchase_price);
+      document.getElementById("equity-in-val").textContent = fmt(r.initial_equity);
+      document.getElementById("moic-val").textContent      = r.initial_equity > 0
+        ? (r.equity_value / r.initial_equity).toFixed(2) + "x" : "N/A";
+
+      const tbody = document.querySelector("#financials-table tbody");
+      tbody.innerHTML = "";
+      r.years.forEach((yr, i) => {
+        tbody.insertAdjacentHTML("beforeend", `<tr>
+          <td>Year ${yr}</td><td>${fmt(r.revenues[i])}</td><td>${fmt(r.ebitda[i])}</td>
+          <td>${fmt(r.interest_payments[i])}</td><td>${fmt(r.debt_balances[i])}</td>
+        </tr>`);
+      });
+
+      document.getElementById("results").style.display = "block";
+      document.getElementById("charts-section").style.display = "grid";
+      document.getElementById("next-step").style.display = "block";
+
+      [revenueChart, debtChart, cashflowChart].forEach(c => c && c.destroy());
+      const labels = r.years.map(y => "Year " + y);
+
+      revenueChart = new Chart(document.getElementById("revenueChart"), {
+        type: "bar", options: CHART_OPT,
+        data: { labels, datasets: [
+          { label: "Revenue", data: r.revenues, backgroundColor: "#ef444433", borderColor: "#ef4444", borderWidth: 2 },
+          { label: "EBITDA",  data: r.ebitda,   backgroundColor: "#ffffff22", borderColor: "#e2e8f0", borderWidth: 2 },
+        ]},
+      });
+
+      debtChart = new Chart(document.getElementById("debtChart"), {
+        type: "line", options: CHART_OPT,
+        data: { labels, datasets: [
+          { label: "Debt Balance", data: r.debt_balances, borderColor: "#ef4444", backgroundColor: "#ef444422", fill: true, tension: 0.3 },
+        ]},
+      });
+
+      cashflowChart = new Chart(document.getElementById("cashflowChart"), {
+        type: "bar", options: CHART_OPT,
+        data: { labels: ["Entry", ...labels], datasets: [{
+          label: "Cash Flow", data: r.cash_flows,
+          backgroundColor: r.cash_flows.map(v => v >= 0 ? "#ffffff33" : "#ef444466"),
+          borderColor:      r.cash_flows.map(v => v >= 0 ? "#e2e8f0"   : "#ef4444"),
+          borderWidth: 2,
+        }]},
+      });
+    }
+  </script>
+</body>
+</html>

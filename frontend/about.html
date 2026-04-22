@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LBO Tool — About</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <div class="page">
+
+    <!-- App Section -->
+    <div class="about-section">
+      <div class="about-label">The Tool</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 60" width="44" height="52">
+          <rect x="0" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+          <rect x="37" y="0" width="15" height="38" fill="#CC0000" rx="1"/>
+          <path d="M0,30 Q0,60 26,60 Q52,60 52,30 L37,30 Q37,45 26,45 Q15,45 15,30 Z" fill="#CC0000"/>
+        </svg>
+        <div style="border-left:3px solid #ef4444;padding-left:14px;">
+          <h1 class="about-title" style="margin-bottom:0;">LBO Modeling Tool</h1>
+          <p class="about-sub" style="margin-bottom:0;">A web-based leveraged buyout analysis platform built for learning and exploration.</p>
+        </div>
+      </div>
+
+      <div class="about-grid">
+        <div class="about-card">
+          <div class="about-card-icon">📊</div>
+          <div class="about-card-title">What it does</div>
+          <div class="about-card-body">
+            Takes a public company's real financial data and models what a private equity leveraged buyout would look like —
+            projecting revenue, EBITDA, debt paydown, exit value, IRR, and MOIC over a 5-year hold period.
+          </div>
+        </div>
+        <div class="about-card">
+          <div class="about-card-icon">🔍</div>
+          <div class="about-card-title">Company Validator</div>
+          <div class="about-card-body">
+            Before running any model, the tool scores a company on five LBO suitability criteria —
+            EBITDA margin, revenue scale, existing debt load, company maturity, and free cash flow —
+            so you know upfront if the deal is realistic.
+          </div>
+        </div>
+        <div class="about-card">
+          <div class="about-card-icon">🎲</div>
+          <div class="about-card-title">Monte Carlo Simulation</div>
+          <div class="about-card-body">
+            Runs 1,000+ randomised scenarios by varying growth rate, EBITDA margin, and exit multiple
+            to show the full distribution of possible IRR outcomes — from bear case (P10) to bull case (P90).
+          </div>
+        </div>
+        <div class="about-card">
+          <div class="about-card-icon">📡</div>
+          <div class="about-card-title">Real Data</div>
+          <div class="about-card-body">
+            Pulls live financial data from Yahoo Finance via the yFinance library —
+            revenue, margins, debt, enterprise value, and revenue growth — no API key required.
+          </div>
+        </div>
+      </div>
+
+      <div class="tech-stack">
+        <div class="tech-label">Built with</div>
+        <div class="tech-pills">
+          <span class="pill">Python</span>
+          <span class="pill">FastAPI</span>
+          <span class="pill">NumPy</span>
+          <span class="pill">Pandas</span>
+          <span class="pill">yFinance</span>
+          <span class="pill">Chart.js</span>
+          <span class="pill">HTML / CSS / JS</span>
+          <span class="pill">Claude Code</span>
+        </div>
+      </div>
+
+      <div class="disclaimer-about">
+        This tool is for <strong>educational purposes only</strong> and does not constitute financial advice.
+        All outputs are model projections based on public data and simplified assumptions.
+        Real LBO analysis requires far more depth, proprietary data, and professional judgment.
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="about-divider"></div>
+
+    <!-- Builder Section -->
+    <div class="about-section builder-section">
+      <div class="about-label">The Builder</div>
+
+      <div class="builder-card">
+        <div class="builder-left">
+          <div class="builder-avatar">TM</div>
+        </div>
+        <div class="builder-right">
+          <h2 class="builder-name">Tyler Morton</h2>
+          <div class="builder-title">Freshman · Computer Science (BS) · University of Utah</div>
+
+          <p class="builder-bio">
+            I'm a first-year CS student at the University of Utah with a strong interest in fintech —
+            the intersection of technology and financial systems. I built this LBO Modeling Tool
+            from scratch as a way to combine my passion for finance with hands-on software development.
+          </p>
+
+          <p class="builder-bio">
+            My academic and career interests sit at the crossroads of <strong>risk management</strong>,
+            <strong>wealth management</strong>, and <strong>algorithms and data</strong>.
+            I'm planning to pursue a minor in finance and eventually work in quantitative finance,
+            financial technology, or investment analytics.
+          </p>
+
+          <p class="builder-bio">
+            This project was built using <strong>Claude Code</strong> — Anthropic's AI coding tool —
+            as a way to accelerate development and learn how modern AI-assisted engineering works.
+            The backend logic, financial modeling, and frontend design were all built through
+            an iterative back-and-forth with Claude Code.
+          </p>
+
+          <div class="builder-interests">
+            <div class="interest-tag">Fintech</div>
+            <div class="interest-tag">Risk Management</div>
+            <div class="interest-tag">Wealth Management</div>
+            <div class="interest-tag">Algorithms</div>
+            <div class="interest-tag">Data Science</div>
+            <div class="interest-tag">Private Equity</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    // Inject about link into nav after build
+    buildNav(0);
+
+    // Add about link manually to nav
+    const nav = document.getElementById("main-nav");
+    const aboutLink = document.createElement("a");
+    aboutLink.href = "about.html";
+    aboutLink.className = "nav-about-link active";
+    aboutLink.textContent = "About";
+    nav.appendChild(aboutLink);
+  </script>
+
+  <style>
+    .about-section { margin-bottom: 48px; }
+    .about-label {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #ef4444; font-weight: 700; margin-bottom: 8px;
+    }
+    .about-title {
+      font-size: 2rem; font-weight: 700; color: #fff;
+      letter-spacing: -0.02em; margin-bottom: 8px;
+    }
+    .about-sub { font-size: 1rem; color: #64748b; margin-bottom: 32px; }
+
+    .about-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 16px; margin-bottom: 28px;
+    }
+    .about-card {
+      background: #161616; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 20px;
+    }
+    .about-card-icon { font-size: 1.5rem; margin-bottom: 10px; }
+    .about-card-title { font-size: 0.9rem; font-weight: 700; color: #fecaca; margin-bottom: 8px; }
+    .about-card-body { font-size: 0.83rem; color: #64748b; line-height: 1.6; }
+
+    .tech-stack { margin-bottom: 24px; }
+    .tech-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; margin-bottom: 10px; font-weight: 500; }
+    .tech-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      background: #1a0a0a; border: 1px solid #2a2a2a;
+      color: #fca5a5; font-size: 0.78rem; font-weight: 500;
+      padding: 5px 12px; border-radius: 20px;
+    }
+
+    .disclaimer-about {
+      background: #0f0a00; border: 1px solid #78350f;
+      border-left: 3px solid #f59e0b;
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 0.78rem; color: #fbbf24; line-height: 1.6;
+    }
+    .disclaimer-about strong { color: #fcd34d; }
+
+    .about-divider {
+      height: 1px; background: #2a2a2a; margin-bottom: 48px;
+    }
+
+    .builder-card {
+      display: flex; gap: 28px;
+      background: #161616; border: 1px solid #2a2a2a;
+      border-radius: 12px; padding: 28px;
+    }
+    .builder-left { flex-shrink: 0; }
+    .builder-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: #ef4444; color: white;
+      font-size: 1.3rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      border: 3px solid #7f1d1d;
+    }
+    .builder-name { font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .builder-title { font-size: 0.82rem; color: #ef4444; font-weight: 500; margin-bottom: 16px; }
+    .builder-bio { font-size: 0.88rem; color: #94a3b8; line-height: 1.7; margin-bottom: 12px; }
+    .builder-bio strong { color: #fca5a5; }
+
+    .builder-interests { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .interest-tag {
+      background: #0a0a0a; border: 1px solid #2a2a2a;
+      color: #64748b; font-size: 0.75rem; font-weight: 500;
+      padding: 5px 12px; border-radius: 6px;
+    }
+
+    .nav-about-link {
+      margin-left: auto; font-size: 0.83rem; color: #64748b;
+      text-decoration: none; padding: 0 16px; height: 56px;
+      display: flex; align-items: center;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s;
+    }
+    .nav-about-link:hover { color: #94a3b8; }
+    .nav-about-link.active { color: #f1f5f9; border-bottom-color: #ef4444; }
+
+    @media (max-width: 700px) {
+      .about-grid { grid-template-columns: 1fr; }
+      .builder-card { flex-direction: column; }
+    }
+  </style>
+</body>
+</html>
